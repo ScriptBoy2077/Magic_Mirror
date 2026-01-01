@@ -1,0 +1,4 @@
+# pip install bleak bthome-ble
+# pip install requests
+# pip install openai
+# pip install fastapi uvicorn

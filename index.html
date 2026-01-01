@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时天气</title>
+    <style>
+        /* 全局重置与基础样式 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #000000; /* 纯黑背景 */
+            color: #ffffff;            /* 纯白文字 */
+            font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            height: 100vh;             /* 占满全屏高度 */
+            width: 100vw;              /* 占满全屏宽度 */
+            overflow: hidden;          /* 防止滚动条出现 */
+            display: flex;             /* 使用 Flex 布局 */
+            justify-content: center;   /* 水平居中 */
+            align-items: center;       /* 垂直居中 */
+        }
+
+        /* 主容器：垂直水平居中 */
+        .container {
+            text-align: center;
+            /* 增加最大宽度限制，防止在超大屏幕上文字过于分散，但保持足够大 */
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4vh; /* 容器内部元素的垂直间距，使用视口高度单位 */
+        }
+
+        /* 气温展示区域 */
+        .temperature {
+            display: flex;
+            align-items: baseline; /* 基线对齐，让文字底部对齐更自然 */
+            justify-content: center;
+            gap: 5vw; /* 元素间距 */
+            font-weight: bold;
+        }
+
+        /* 预报和监测模块 */
+        .caiyun, .mijia {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1vh;
+        }
+
+        /* "预报" / "监测" 标签字体 */
+        .caiyun > div:first-child,
+        .mijia > div:first-child {
+            font-size: 3rem;
+            font-weight: 300;
+        }
+
+        /* 核心温度数字 单位字体 */
+        #temp_caiyun, #temp_mijia {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        /* 核心温度数字 - 超大字体 */
+        #temp_caiyun > span, #temp_mijia > span {
+            font-size: 15vw; /* 使用视口宽度单位，保证数字在任何屏幕上都占据显著位置 */
+            font-weight: bold;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+
+        /* 建议区域 */
+        .suggestion {
+            display: flex;
+            flex-direction: column;
+            gap: 2vh; /* 行间距 */
+            text-align: center;
+        }
+
+        .suggestion > div {
+            font-size: 3.5rem; /* 建议文字大字体，确保近视可见 */
+            font-weight: 300;
+            line-height: 1.4;
+        }
+
+        /* 特殊处理更新时间，稍微小一点，但不影响阅读 */
+        #update {
+            font-size: 2rem;
+            margin-top: 2vh;
+            font-family: monospace; /* 等宽字体显示时间更专业 */
+        }
+
+        /* 右侧悬浮按钮栏 */
+        .buttons {
+            position: fixed;       /* 固定定位 */
+            right: 40px;           /* 距离右侧 40px */
+            top: 50%;              /* 垂直居中起点 */
+            transform: translateY(-50%); /* 修正自身垂直居中 */
+            display: flex;
+            flex-direction: column; /* 垂直排列 */
+            gap: 20px;             /* 按钮间距 */
+            z-index: 100;          /* 确保在最上层 */
+        }
+
+        /* 按钮样式 */
+        .button {
+            background-color: #000000; /* 纯黑背景 */
+            color: rgba(255, 255, 255, 0.3);            /* 纯白文字 */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* 轻微边框 */
+            padding: 15px 30px; /* 较大的点击区域 */
+            font-size: 1.5rem; /* 按钮文字适中，不需要像天气那么大 */
+            cursor: pointer;
+            border-radius: 50px; /* 圆角按钮，更现代 */
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3); /* 悬停高亮 */
+            transform: scale(1.05); /* 微微放大 */
+        }
+
+        .button:active {
+            transform: scale(0.95);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        
+        /* 针对超宽屏幕的微调，防止字体过大溢出 */
+        @media (min-width: 2000px) {
+            #temp_caiyun, #temp_mijia {
+                font-size: 10rem; /* 设定上限 */
+            }
+            .suggestion > div {
+                font-size: 4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 主内容容器 -->
+    <div class='container'>
+        <div class='temperature'>
+            <div class='caiyun'>
+                <div>预报</div>
+                <div id='temp_caiyun'><span id="forecast">16</span>℃</div>
+            </div>
+            <div class='mijia'>
+                <div>监测</div>
+                <div id='temp_mijia'><span id="monitor">18</span>℃</div>
+            </div>
+        </div>
+
+        <div class='suggestion'>
+            <div id='wather_local'>本地：无雨雪</div>
+            <div id='wather_nearby'>附近：最近的降雨带在10000公里外，小雨</div>
+            <div id='clothes'>着装：随便穿</div>
+            <div id='update'>更新：1970.01.01 00:00:00</div>
+        </div>
+    </div>
+
+    <!-- 右侧悬浮按钮 -->
+    <div class="buttons">
+        <button class="button" onclick="refreshData()">更新</button>
+        <button class="button" onclick="toggleDisplay()">镜面</button>
+    </div>
+
+    <script>
+        let isSimplified = false;
+
+        function refreshData() {
+            fetch('http://127.0.0.1:8000/weather')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('forecast').textContent = data.forecast;
+                    document.getElementById('monitor').textContent = data.monitor;
+                    document.getElementById('wather_local').textContent = '本地：' + data.weather;
+                    document.getElementById('wather_nearby').textContent = '附近：最近的降雨带在' + data.nearest + '公里外，' + data.rain;
+                    document.getElementById('clothes').textContent = '着装：' + data.advice;
+                    document.getElementById('update').textContent = '更新：' + data.update;
+                })
+                .catch(error => {
+                    console.error('There has been a problem with your fetch operation:', error);
+                    // Use fake data for display
+                    document.getElementById('forecast').textContent = '66';
+                    document.getElementById('monitor').textContent = '88';
+                    document.getElementById('wather_local').textContent = '本地：无雨雪';
+                    document.getElementById('wather_nearby').textContent = '附近：最近的降雨带在10000公里外，小雨';
+                    document.getElementById('clothes').textContent = '着装：随便穿';
+                    document.getElementById('update').textContent = '更新：1970.01.01 00:00:00';
+                });
+        }
+
+        function toggleDisplay() {
+            isSimplified = !isSimplified;
+            const elements = document.querySelectorAll('.container');
+            elements.forEach(element => {
+                element.classList.toggle('hidden', isSimplified);
+            });
+        }
+
+        // Initial data fetch
+        refreshData();
+    </script>
+    
+    <script>
+        function scheduleClick(targetHour, targetMinute) {
+            const now = new Date();
+            const targetTime = new Date();
+            
+            targetTime.setHours(targetHour, targetMinute, 0, 0);
+            
+            // 如果目标时间已过，设置为第二天
+            if (now > targetTime) {
+                targetTime.setDate(targetTime.getDate() + 1);
+            }
+            
+            const timeDiff = targetTime.getTime() - now.getTime();
+            const element = document.querySelector('.container');
+            setTimeout(() => {
+                refreshData();
+                if (element.classList.contains('hidden')) {
+                    toggleDisplay();
+                }
+                
+                // 如果需要每天重复执行，可以再次调用scheduleClick
+                scheduleClick(targetHour, targetMinute);
+            }, timeDiff);
+        }
+
+        // 每天早上6:50执行
+        scheduleClick(6, 50);
+    </script>
+    
+</body>
+</html>
