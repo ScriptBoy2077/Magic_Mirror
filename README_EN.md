@@ -1,4 +1,4 @@
-# Raspberry Pi Smart Mirror
+# Raspberry Pi Magic Mirror
 
 ## Overview
 Retrieve weather forecasts and actual environmental data from **Caiyun Weather API** and **Xiaomi Bluetooth Thermometer/Hygrometer 2**, then generate personalized clothing suggestions via AI services.
